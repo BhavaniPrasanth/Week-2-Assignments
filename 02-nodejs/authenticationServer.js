@@ -30,8 +30,107 @@
  */
 
 const express = require("express")
-const PORT = 3000;
+const port = 3000;
 const app = express();
 // write your logic here, DONT WRITE app.listen(3000) when you're running tests, the tests will automatically start the server
+var users = [];
+
+app.use(express.json());
+app.post("/signup", (req, res) => {
+  var user = req.body;
+  let userAlreadyExists = false;
+  for (var i = 0; i<users.length; i++) {
+    if (users[i].email === user.email) {
+        userAlreadyExists = true;
+        break;
+    }
+  }
+  if (userAlreadyExists) {
+    res.sendStatus(400);
+  } else {
+    users.push(user);
+    res.status(201).send("Signup successful");
+  }
+});
+
+app.post("/login", (req, res) => {
+  var user = req.body;
+  let userFound = null;
+  for (var i = 0; i<users.length; i++) {
+    if (users[i].email === user.email && users[i].password === user.password) {
+        userFound = users[i];
+        break;
+    }
+  }
+
+  if (userFound) {
+    res.json({
+        firstName: userFound.firstName,
+        lastName: userFound.lastName,
+        email: userFound.email
+    });
+  } else {
+    res.sendStatus(401);
+  }
+});
+
+
+  
+
+app.get('/data', (req, res) => {
+  // Fetch arrays of emails and passwords from request headers
+  const emailsHeader = req.headers['x-emails'];
+  const passwordsHeader = req.headers['x-passwords'];
+
+  console.log('Received headers:', emailsHeader, passwordsHeader);
+  // Check if headers exist
+  if (!emailsHeader || !passwordsHeader) {
+    return res.status(400).json({ error: 'Bad Request: Missing headers' });
+  }
+
+  const emails = emailsHeader.split(',');
+  const passwords = passwordsHeader.split(',');
+
+  // Array to store matched users
+  const matchedUsers = [];
+
+  // Iterate over each set of credentials
+  for (let i = 0; i < emails.length; i++) {
+    const email = emails[i].trim();
+    const password = passwords[i].trim();
+
+    // Find the user with the matching email and password
+    
+    const user = users.find(user => user.email === email && user.password === password);
+
+    console.log('Matching user:', user);
+
+    // If a user is found, add them to the matchedUsers array
+    if (user) {
+      matchedUsers.push({
+        firstName: user.firstName,
+        lastName: user.lastName
+      });
+    }
+  }
+
+  // If no users are found, return a 401 Unauthorized response
+  if (matchedUsers.length === 0) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid email or password' });
+  }
+
+  // Return the protected data for matched users
+  return res.status(200).json({ users: matchedUsers });
+});
+app.get("/all", (req,res) => {
+  res.send(users);
+})
+
+function started(){
+  console.log('Example app listing on port ${port}')
+}
+
+app.listen(port, started)
+
 
 module.exports = app;
